@@ -1,23 +1,23 @@
 var app = require('http').createServer()
   , io = require('socket.io').listen(app)
-  , fs = require('fs');
+  , fs = require('fs')
+  , chokidar = require('chokidar');
 
 app.listen(1337);
 
-var files = fs.readdirSync(__dirname + '/images');
+var watcher = chokidar.watch(__dirname + '/images', {ignored: /^\./, persistent: true});
+
+
 
 io.sockets.on('connection', function (socket) {
-    var loadImage = function(){
-    var index = Math.floor((Math.random()*files.length));
-    fs.readFile(__dirname + '/images/' + files[index], 'base64', function(err, data){
+  watcher
+    .on('add', function(path) {
+      fs.readFile(path, 'base64', function(err, data){
       if(!err){
         socket.emit('picture', data);
       }else{
         socket.emit('error', err);
       }
     });
-  }
-  
-  setInterval(loadImage, 6000);
-  loadImage();
+  });
 });
