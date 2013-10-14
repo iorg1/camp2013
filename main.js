@@ -14,10 +14,15 @@ io.sockets.on('connection', function (socket) {
     .on('add', function(path) {
       fs.readFile(path, 'base64', function(err, data){
       if(!err){
-        socket.emit('picture', data);
+        socket.emit('picture', 'data:image/jpg;base64,' + data);
       }else{
         socket.emit('error', err);
       }
     });
   });
+
+socket.on('addphoto', function (data) {
+  socket.emit('picture', data.dataurl);
+})
+
 });
