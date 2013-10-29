@@ -1,5 +1,5 @@
 var app = require('http').createServer()
-  , io = require('socket.io').listen(app)
+  , io = require('socket.io').listen(app, { log: false })
   , fs = require('fs')
   , chokidar = require('chokidar');
 
@@ -13,7 +13,7 @@ var emit = function(event, data){
 
 var resetTimer = function () {
   clearTimeout(timeout);
-  timeout = setTimeout(loadFromArchive, (5 + Math.random()*15)*1000);
+  timeout = setTimeout(loadFromArchive, (3 + Math.random()*5)*1000);
 };
 
 var loadFromArchive = function(){
@@ -36,6 +36,7 @@ var uploadDir = chokidar.watch(__dirname + '/images', {ignored: /^\./, persisten
 var clients = [];
 var timeout = 0;
 io.sockets.on('connection', function (socket) {
+  console.log('client connected');
   clients.push(socket);
   uploadDir
     .on('add', function(path) {
@@ -43,22 +44,25 @@ io.sockets.on('connection', function (socket) {
       if(!err){
         emit('picture', 'data:image/jpg;base64,' + data);
         resetTimer();
-        //socket.emit('picture', 'data:image/jpg;base64,' + data);
       }else{
         emit('error', err);
       }
     });
   });
   socket.on('addphoto', function (data) {
-    var base64Data = data.dataurl.replace(/^data:image\/jpeg;base64,/, ""); 
-    base64Data += base64Data.replace('+', ' ');
-    binaryData = new Buffer(base64Data, 'base64').toString('binary');
+    console.log('photo gotten');
+    if(data && data.dataurl){
+      var base64Data = data.dataurl.replace(/^data:image\/jpeg;base64,/, ""); 
+      base64Data += base64Data.replace('+', ' ');
+      binaryData = new Buffer(base64Data, 'base64').toString('binary');
 
-    fs.writeFile(__dirname + '/imagepool/' + Math.floor(Math.random() * 10000000) + ".jpg", binaryData, "binary", function (err) {
-        console.log(err); // writes out file without error, but it's not a valid image
-    });
-    emit('picture', data.dataurl);
-    resetTimer();
+      fs.writeFile(__dirname + '/imagepool/' + Math.floor(Math.random() * 10000000) + ".jpg", binaryData, "binary", function (err) {});
+      emit('picture', data.dataurl);
+      resetTimer();
+    }else{
+      console.log('Worng input', data);
+    }
+    
   });
   
   resetTimer();
